@@ -38,9 +38,10 @@ app.get('/health', (req, res) => {
 
 // API: Lấy danh sách 50 mail mới nhất
 app.get('/api/mails', async (req, res) => {
-  const client = getImapClient();
+  let client;
 
   try {
+    client = getImapClient();
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
 
@@ -74,16 +75,17 @@ app.get('/api/mails', async (req, res) => {
     res.status(500).json({ error: err.message });
   } finally {
     try {
-      if (client.usable) await client.logout();
+      if (client && client.usable) await client.logout();
     } catch (_) {}
   }
 });
 
 // API: Lấy nội dung chi tiết của 1 mail theo UID
 app.get('/api/mails/:id', async (req, res) => {
-  const client = getImapClient();
+  let client;
 
   try {
+    client = getImapClient();
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
 
@@ -111,7 +113,7 @@ app.get('/api/mails/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   } finally {
     try {
-      if (client.usable) await client.logout();
+      if (client && client.usable) await client.logout();
     } catch (_) {}
   }
 });

@@ -26,13 +26,13 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function fmt(d){if(!d)return '';try{return new Date(d).toLocaleString('vi-VN')}catch{return d}}
 async function loadMails(){
   $('status').textContent='Đang tải...';$('error').innerHTML='';$('mailList').innerHTML='<div class="loading">Đang tải email...</div>';
-  try{const r=await fetch('/api/mails');const data=await r.json();if(!r.ok)throw new Error(data.error||'Không thể tải email');
+  try{const r=await fetch('/api/mails',{headers:{'Accept':'application/json'}});const text=await r.text();let data;try{data=JSON.parse(text)}catch{throw new Error('API trả về HTML thay vì JSON. Kiểm tra IMAP Variables trên Railway và Deploy Logs. HTTP '+r.status)}if(!r.ok)throw new Error(data.error||'Không thể tải email');
     $('count').textContent=data.length+' email';$('status').textContent='Đã kết nối';
     $('mailList').innerHTML=data.length?data.map(m=>`<div class="mail" data-id="${esc(m.id)}" onclick="openMail(${Number(m.id)},this)"><div class="from">${esc(m.from||'Không rõ người gửi')}</div><div class="subject">${esc(m.subject)}</div><div class="date">${esc(fmt(m.date))}</div></div>`).join(''):'<div class="empty">Không có email</div>';
   }catch(e){$('status').textContent='Lỗi kết nối';$('mailList').innerHTML='';$('error').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
 }
 async function openMail(id,el){document.querySelectorAll('.mail').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('detail').innerHTML='<div class="loading">Đang mở email...</div>';
-  try{const r=await fetch('/api/mails/'+encodeURIComponent(id));const data=await r.json();if(!r.ok)throw new Error(data.error||'Không thể mở email');
+  try{const r=await fetch('/api/mails/'+encodeURIComponent(id),{headers:{'Accept':'application/json'}});const text=await r.text();let data;try{data=JSON.parse(text)}catch{throw new Error('API trả về HTML thay vì JSON. Kiểm tra server và IMAP Variables. HTTP '+r.status)}if(!r.ok)throw new Error(data.error||'Không thể mở email');
     $('detail').innerHTML='<div class="detail-head"><h1>'+esc(data.subject)+'</h1></div><div class="detail-body"><div id="body"></div></div>';
     const body=$('body');body.innerHTML=data.body||'<span class="empty">Email không có nội dung</span>';
     body.querySelectorAll('script').forEach(s=>s.remove());
