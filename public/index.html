@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mail Viewer</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
+    .app{height:100vh;display:flex;flex-direction:column}.top{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 22px;gap:14px}.logo{font-size:20px;font-weight:700}.status{margin-left:auto;font-size:13px;color:#64748b}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px}.main{flex:1;display:grid;grid-template-columns:360px 1fr;min-height:0}.list{background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;min-width:0}.toolbar{padding:14px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px}.toolbar button{border:0;background:#eef2ff;padding:9px 13px;border-radius:8px;cursor:pointer}.mail-list{overflow:auto}.mail{padding:15px;border-bottom:1px solid #eef0f4;cursor:pointer}.mail:hover,.mail.active{background:#f1f5ff}.from{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.subject{font-size:14px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:12px;color:#94a3b8;margin-top:7px}.empty,.loading{padding:30px;text-align:center;color:#64748b}.detail{min-width:0;background:#fff;overflow:auto}.detail-head{padding:24px;border-bottom:1px solid #e5e7eb}.detail-head h1{margin:0 0 10px;font-size:22px}.detail-body{padding:24px}.detail-body iframe{width:100%;min-height:70vh;border:0}.textbody{white-space:pre-wrap;line-height:1.6}.error{margin:14px;padding:12px;border-radius:8px;background:#fef2f2;color:#b91c1c;font-size:13px}.badge{font-size:12px;color:#64748b}@media(max-width:760px){.main{grid-template-columns:1fr}.list{height:45vh;border-right:0;border-bottom:1px solid #e5e7eb}.detail{height:55vh}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><div class="logo">📬 Mail Viewer</div><div class="status"><span class="dot"></span><span id="status">Đang kết nối...</span></div></header>
+  <main class="main">
+    <section class="list">
+      <div class="toolbar"><button onclick="loadMails()">↻ Làm mới</button><span class="badge" id="count"></span></div>
+      <div id="error"></div><div id="mailList" class="mail-list"><div class="loading">Đang tải email...</div></div>
+    </section>
+    <section class="detail" id="detail"><div class="empty">Chọn một email để xem nội dung</div></section>
+  </main>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function fmt(d){if(!d)return '';try{return new Date(d).toLocaleString('vi-VN')}catch{return d}}
+async function loadMails(){
+  $('status').textContent='Đang tải...';$('error').innerHTML='';$('mailList').innerHTML='<div class="loading">Đang tải email...</div>';
+  try{const r=await fetch('/api/mails');const data=await r.json();if(!r.ok)throw new Error(data.error||'Không thể tải email');
+    $('count').textContent=data.length+' email';$('status').textContent='Đã kết nối';
+    $('mailList').innerHTML=data.length?data.map(m=>`<div class="mail" data-id="${esc(m.id)}" onclick="openMail(${Number(m.id)},this)"><div class="from">${esc(m.from||'Không rõ người gửi')}</div><div class="subject">${esc(m.subject)}</div><div class="date">${esc(fmt(m.date))}</div></div>`).join(''):'<div class="empty">Không có email</div>';
+  }catch(e){$('status').textContent='Lỗi kết nối';$('mailList').innerHTML='';$('error').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+async function openMail(id,el){document.querySelectorAll('.mail').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('detail').innerHTML='<div class="loading">Đang mở email...</div>';
+  try{const r=await fetch('/api/mails/'+encodeURIComponent(id));const data=await r.json();if(!r.ok)throw new Error(data.error||'Không thể mở email');
+    $('detail').innerHTML='<div class="detail-head"><h1>'+esc(data.subject)+'</h1></div><div class="detail-body"><div id="body"></div></div>';
+    const body=$('body');body.innerHTML=data.body||'<span class="empty">Email không có nội dung</span>';
+    body.querySelectorAll('script').forEach(s=>s.remove());
+  }catch(e){$('detail').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+loadMails();
+</script>
+</body>
+</html>
