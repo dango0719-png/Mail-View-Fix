@@ -1,44 +1,210 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Mail Viewer</title>
   <style>
-    *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
-    .app{height:100vh;display:flex;flex-direction:column}.top{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 22px;gap:14px}.logo{font-size:20px;font-weight:700}.status{margin-left:auto;font-size:13px;color:#64748b}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px}.main{flex:1;display:grid;grid-template-columns:360px 1fr;min-height:0}.list{background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;min-width:0}.toolbar{padding:14px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px}.toolbar button{border:0;background:#eef2ff;padding:9px 13px;border-radius:8px;cursor:pointer}.mail-list{overflow:auto}.mail{padding:15px;border-bottom:1px solid #eef0f4;cursor:pointer}.mail:hover,.mail.active{background:#f1f5ff}.from{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.subject{font-size:14px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:12px;color:#94a3b8;margin-top:7px}.empty,.loading{padding:30px;text-align:center;color:#64748b}.detail{min-width:0;background:#fff;overflow:auto}.detail-head{padding:24px;border-bottom:1px solid #e5e7eb}.detail-head h1{margin:0 0 10px;font-size:22px}.detail-body{padding:24px}.detail-body iframe{width:100%;min-height:70vh;border:0}.textbody{white-space:pre-wrap;line-height:1.6}.error{margin:14px;padding:12px;border-radius:8px;background:#fef2f2;color:#b91c1c;font-size:13px}.badge{font-size:12px;color:#64748b}@media(max-width:760px){.main{grid-template-columns:1fr}.list{height:45vh;border-right:0;border-bottom:1px solid #e5e7eb}.detail{height:55vh}}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+    .top{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+    .brand{font-size:20px;font-weight:700}
+    .status{font-size:13px;color:#64748b}
+    .wrap{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;padding:24px}
+    .login{width:390px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px;box-shadow:0 10px 30px #0000000b}
+    h1{margin:0 0 8px;font-size:24px}
+    .muted{color:#64748b;font-size:14px;margin-bottom:22px}
+    label{display:block;font-size:13px;font-weight:600;margin:14px 0 7px}
+    input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+    button{border:0;border-radius:8px;padding:11px 16px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600}
+    button:disabled{opacity:.6;cursor:wait}
+    .login button{width:100%;margin-top:20px}
+    .error{display:none;background:#fee2e2;color:#991b1b;padding:11px;border-radius:8px;font-size:13px;margin-top:15px}
+    .app{display:none;height:calc(100vh - 64px)}
+    .sidebar{width:360px;background:#fff;border-right:1px solid #e5e7eb;overflow:auto}
+    .toolbar{padding:14px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px}
+    .toolbar button{width:auto}
+    .secondary{background:#e2e8f0;color:#172033}
+    .mail{padding:13px 16px;border-bottom:1px solid #eef2f7;cursor:pointer}
+    .mail:hover{background:#f8fafc}
+    .mail .subject{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mail .from,.mail .date{font-size:12px;color:#64748b;margin-top:5px}
+    .content{flex:1;background:#fff;overflow:auto;padding:30px}
+    .content h2{margin-top:0}
+    .content iframe{width:100%;min-height:70vh;border:0}
+    .empty{color:#64748b;text-align:center;margin-top:35px}
+    @media(max-width:700px){.sidebar{width:100%}.content{display:none}.app{display:block}.app.mobile-detail .sidebar{display:none}.app.mobile-detail .content{display:block}}
   </style>
 </head>
 <body>
-<div class="app">
-  <header class="top"><div class="logo">📬 Mail Viewer</div><div class="status"><span class="dot"></span><span id="status">Đang kết nối...</span></div></header>
-  <main class="main">
-    <section class="list">
-      <div class="toolbar"><button onclick="loadMails()">↻ Làm mới</button><span class="badge" id="count"></span></div>
-      <div id="error"></div><div id="mailList" class="mail-list"><div class="loading">Đang tải email...</div></div>
-    </section>
-    <section class="detail" id="detail"><div class="empty">Chọn một email để xem nội dung</div></section>
+<header class="top">
+  <div class="brand">📬 Mail Viewer</div>
+  <div id="topStatus" class="status">Chưa đăng nhập</div>
+</header>
+
+<div id="loginWrap" class="wrap">
+  <form id="loginForm" class="login">
+    <h1>Đăng nhập email</h1>
+    <div class="muted">Nhập tài khoản email của khách hàng để xem hộp thư.</div>
+
+    <label>Email</label>
+    <input id="user" type="email" autocomplete="username" required placeholder="you@example.com">
+
+    <label>Mật khẩu</label>
+    <input id="pass" type="password" autocomplete="current-password" required placeholder="••••••••">
+
+    <div style="font-size:12px;color:#64748b;margin-top:12px">
+      Máy chủ thư: <b id="imapHost">m4.kcn.ne.jp</b>
+    </div>
+
+    <button id="loginBtn" type="submit">Đăng nhập</button>
+    <div id="loginError" class="error"></div>
+  </form>
+</div>
+
+<div id="app" class="app">
+  <aside class="sidebar">
+    <div class="toolbar">
+      <button id="refreshBtn">↻ Làm mới</button>
+      <button id="logoutBtn" class="secondary">Đăng xuất</button>
+    </div>
+    <div id="mailList"></div>
+  </aside>
+  <main class="content">
+    <div id="mailContent" class="empty">Chọn một email để xem nội dung</div>
   </main>
 </div>
+
 <script>
-const $=id=>document.getElementById(id);
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
-function fmt(d){if(!d)return '';try{return new Date(d).toLocaleString('vi-VN')}catch{return d}}
-async function loadMails(){
-  $('status').textContent='Đang tải...';$('error').innerHTML='';$('mailList').innerHTML='<div class="loading">Đang tải email...</div>';
-  try{const r=await fetch('/api/mails',{headers:{'Accept':'application/json'}});const text=await r.text();let data;try{data=JSON.parse(text)}catch{throw new Error('Server không trả JSON (HTTP '+r.status+'). Response: '+text.slice(0,300))}if(!r.ok)throw new Error(data.error||'Không thể tải email');
-    $('count').textContent=data.length+' email';$('status').textContent='Đã kết nối';
-    $('mailList').innerHTML=data.length?data.map(m=>`<div class="mail" data-id="${esc(m.id)}" onclick="openMail(${Number(m.id)},this)"><div class="from">${esc(m.from||'Không rõ người gửi')}</div><div class="subject">${esc(m.subject)}</div><div class="date">${esc(fmt(m.date))}</div></div>`).join(''):'<div class="empty">Không có email</div>';
-  }catch(e){$('status').textContent='Lỗi kết nối';$('mailList').innerHTML='';$('error').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+let token = sessionStorage.getItem('mail_token');
+
+const $ = id => document.getElementById(id);
+const api = async (url, options = {}) => {
+  const headers = {'Content-Type':'application/json', ...(options.headers || {})};
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(url, {...options, headers});
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error('Máy chủ trả về dữ liệu không hợp lệ (' + r.status + ').'); }
+  if (!r.ok) {
+    if (r.status === 401) logout(false);
+    throw new Error(data.error || 'Có lỗi xảy ra.');
+  }
+  return data;
+};
+
+function showLogin() {
+  $('loginWrap').style.display = 'flex';
+  $('app').style.display = 'none';
+  $('topStatus').textContent = 'Chưa đăng nhập';
 }
-async function openMail(id,el){document.querySelectorAll('.mail').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('detail').innerHTML='<div class="loading">Đang mở email...</div>';
-  try{const r=await fetch('/api/mails/'+encodeURIComponent(id),{headers:{'Accept':'application/json'}});const text=await r.text();let data;try{data=JSON.parse(text)}catch{throw new Error('Server không trả JSON (HTTP '+r.status+'). Response: '+text.slice(0,300))}if(!r.ok)throw new Error(data.error||'Không thể mở email');
-    $('detail').innerHTML='<div class="detail-head"><h1>'+esc(data.subject)+'</h1></div><div class="detail-body"><div id="body"></div></div>';
-    const body=$('body');body.innerHTML=data.body||'<span class="empty">Email không có nội dung</span>';
-    body.querySelectorAll('script').forEach(s=>s.remove());
-  }catch(e){$('detail').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+
+function showApp(user) {
+  $('loginWrap').style.display = 'none';
+  $('app').style.display = 'flex';
+  $('topStatus').textContent = '● ' + user;
 }
-loadMails();
+
+function logout(clearServer = true) {
+  if (clearServer && token) fetch('/api/logout', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+token}
+  }).catch(()=>{});
+  token = null;
+  sessionStorage.removeItem('mail_token');
+  $('mailList').innerHTML = '';
+  $('mailContent').innerHTML = '<div class="empty">Chọn một email để xem nội dung</div>';
+  showLogin();
+}
+
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('loginBtn');
+  const err = $('loginError');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Đang kiểm tra...';
+
+  try {
+    const data = await api('/api/login', {
+      method:'POST',
+      body:JSON.stringify({user:$('user').value, pass:$('pass').value})
+    });
+    token = data.token;
+    sessionStorage.setItem('mail_token', token);
+    $('pass').value = '';
+    showApp(data.user);
+    await loadMails();
+  } catch (e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Đăng nhập';
+  }
+});
+
+async function loadMails() {
+  $('mailList').innerHTML = '<div class="empty">Đang tải email...</div>';
+  try {
+    const mails = await api('/api/mails');
+    if (!mails.length) {
+      $('mailList').innerHTML = '<div class="empty">Hộp thư trống</div>';
+      return;
+    }
+    $('mailList').innerHTML = mails.map(m => `
+      <div class="mail" data-id="${m.id}">
+        <div class="subject">${escapeHtml(m.subject)}</div>
+        <div class="from">${escapeHtml(m.from)}</div>
+        <div class="date">${m.date ? new Date(m.date).toLocaleString('vi-VN') : ''}</div>
+      </div>
+    `).join('');
+    document.querySelectorAll('.mail').forEach(el => {
+      el.addEventListener('click', () => openMail(el.dataset.id));
+    });
+  } catch (e) {
+    $('mailList').innerHTML = '<div class="error" style="display:block;margin:12px">' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+async function openMail(id) {
+  $('mailContent').innerHTML = '<div class="empty">Đang tải...</div>';
+  try {
+    const m = await api('/api/mails/' + encodeURIComponent(id));
+    $('mailContent').innerHTML = `
+      <button class="secondary" onclick="document.getElementById('app').classList.remove('mobile-detail')" style="margin-bottom:15px">← Danh sách</button>
+      <h2>${escapeHtml(m.subject)}</h2>
+      <div style="font-size:13px;color:#64748b;margin-bottom:20px">${escapeHtml(m.from || '')}</div>
+      <iframe sandbox="allow-same-origin" id="mailFrame"></iframe>
+    `;
+    const frame = $('mailFrame');
+    frame.srcdoc = m.body;
+    $('app').classList.add('mobile-detail');
+  } catch (e) {
+    $('mailContent').innerHTML = '<div class="error" style="display:block">' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[c]));
+}
+
+$('refreshBtn').onclick = loadMails;
+$('logoutBtn').onclick = () => logout(true);
+
+(async function init() {
+  if (!token) return showLogin();
+  try {
+    const me = await api('/api/me');
+    showApp(me.user);
+    await loadMails();
+  } catch (_) {
+    showLogin();
+  }
+})();
 </script>
 </body>
 </html>
