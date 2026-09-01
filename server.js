@@ -1,124 +1,142 @@
-require('dotenv').config();
 const express = require('express');
 const { ImapFlow } = require('imapflow');
+const Pop3Command = require('node-pop3');
 const { simpleParser } = require('mailparser');
+const path = require('path');
 
 const app = express();
-const port = Number(process.env.PORT) || 3000;
-const host = '0.0.0.0';
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
-  res.sendFile(require('path').join(process.cwd(), 'public', 'index.html'));
-});
+app.post('/api/read-mail', async (req, res) => {
+    const { host, port, email, password, searchKeyword } = req.body;
+    const portNum = parseInt(port);
 
-function getImapClient() {
-  if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASS) {
-    throw new Error('Thiếu biến môi trường IMAP_HOST, IMAP_USER hoặc IMAP_PASS');
-  }
-
-  return new ImapFlow({
-    host: process.env.IMAP_HOST,
-    port: Number(process.env.IMAP_PORT) || 143,
-    secure: String(process.env.IMAP_SECURE).toLowerCase() === 'true',
-    auth: {
-      user: process.env.IMAP_USER,
-      pass: process.env.IMAP_PASS
-    },
-    logger: false
-  });
-}
-
-// Railway health check
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-// API: Lấy danh sách 50 mail mới nhất
-app.get('/api/mails', async (req, res) => {
-  let client;
-
-  try {
-    client = getImapClient();
-    await client.connect();
-    const lock = await client.getMailboxLock('INBOX');
-
-    try {
-      const messages = [];
-      const exists = client.mailbox.exists || 0;
-      const seq = exists > 50 ? `${exists - 49}:*` : exists > 0 ? '1:*' : null;
-
-      if (!seq) {
-        return res.json([]);
-      }
-
-      for await (const msg of client.fetch(seq, { envelope: true, uid: true })) {
-        messages.push({
-          id: msg.uid,
-          from: (msg.envelope?.from || [])
-            .map(f => f.address || f.name || '')
-            .filter(Boolean)
-            .join(', '),
-          subject: msg.envelope?.subject || '(Không có tiêu đề)',
-          date: msg.envelope?.date || null
-        });
-      }
-
-      res.json(messages.reverse());
-    } finally {
-      lock.release();
+    if (!host || !portNum || !email || !password) {
+        return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ các thông tin đăng nhập!" });
     }
-  } catch (err) {
-    console.error('GET /api/mails:', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    try {
-      if (client && client.usable) await client.logout();
-    } catch (_) {}
-  }
-});
 
-// API: Lấy nội dung chi tiết của 1 mail theo UID
-app.get('/api/mails/:id', async (req, res) => {
-  let client;
-
-  try {
-    client = getImapClient();
-    await client.connect();
-    const lock = await client.getMailboxLock('INBOX');
+    let emails = [];
 
     try {
-      const uid = Number(req.params.id);
-      if (!Number.isInteger(uid) || uid <= 0) {
-        return res.status(400).json({ error: 'UID không hợp lệ' });
-      }
+        // ==========================================
+        // RẼ NHÁNH 1: XỬ LÝ GIAO THỨC POP3 (Port 110 hoặc 995)
+        // ==========================================
+        if (portNum === 110 || portNum === 995) {
+            if (searchKeyword && searchKeyword.trim() !== "") {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Giao thức POP3 không hỗ trợ tính năng tìm kiếm trên máy chủ. Vui lòng để trống ô tìm kiếm hoặc dùng IMAP." 
+                });
+            }
 
-      const msg = await client.fetchOne(uid, { source: true }, { uid: true });
-      if (!msg) {
-        return res.status(404).json({ error: 'Không tìm thấy mail' });
-      }
+            const pop3 = new Pop3Command({
+                user: email.trim(),
+                password: password,
+                host: host.trim(),
+                port: portNum,
+                tls: portNum === 995,
+                tlsOptions: { rejectUnauthorized: false } // Bỏ qua lỗi chứng chỉ bảo mật SSL
+            });
 
-      const parsed = await simpleParser(msg.source);
-      res.json({
-        subject: parsed.subject || '(Không có tiêu đề)',
-        body: parsed.html || `<pre>${parsed.textAsHtml || parsed.text || ''}</pre>`
-      });
-    } finally {
-      lock.release();
+            // Không gọi pop3.login() vì thư viện tự động đăng nhập ngầm khi khởi tạo
+
+            // Lấy thông tin hộp thư (STAT trả về tổng số thư)
+            const stat = await pop3.STAT();
+            const totalMessages = parseInt(stat.count);
+
+            if (totalMessages === 0) {
+                await pop3.QUIT();
+                return res.json({ success: true, data: [] });
+            }
+
+            // Lấy tối đa 5 thư mới nhất (POP3 đánh số từ 1 đến N, N là thư mới nhất)
+            const startMsg = Math.max(1, totalMessages - 4);
+
+            for (let i = totalMessages; i >= startMsg; i--) {
+                // Tải nội dung thư thô bằng lệnh RETR
+                const msgSource = await pop3.RETR(i);
+                
+                // Dịch nội dung thư bằng mailparser
+                const parsed = await simpleParser(msgSource);
+                
+                emails.push({
+                    subject: parsed.subject || "(Không có chủ đề)",
+                    from: parsed.from ? parsed.from.text : "Unknown Sender",
+                    date: parsed.date,
+                    body: parsed.html || parsed.textAsHtml || parsed.text || "Không có nội dung"
+                });
+            }
+
+            await pop3.QUIT();
+            return res.json({ success: true, data: emails });
+        } 
+        
+        // ==========================================
+        // RẼ NHÁNH 2: XỬ LÝ GIAO THỨC IMAP (Các Port còn lại như 993, 143)
+        // ==========================================
+        else {
+            const client = new ImapFlow({
+                host: host.trim(),
+                port: portNum,
+                secure: portNum === 993,
+                auth: { user: email.trim(), pass: password },
+                tls: { rejectUnauthorized: false }, // Bỏ qua lỗi chứng chỉ bảo mật SSL
+                logger: false 
+            });
+
+            await client.connect();
+            let lock = await client.getMailboxLock('INBOX');
+            
+            let fetchSequence;
+
+            // Kiểm tra điều kiện tìm kiếm mail
+            if (searchKeyword && searchKeyword.trim() !== "") {
+                const searchResults = await client.search({ text: searchKeyword.trim() });
+                if (!searchResults || searchResults.length === 0) {
+                    lock.release();
+                    await client.logout();
+                    return res.json({ success: true, data: [] });
+                }
+                // Lấy tối đa 10 kết quả tìm kiếm mới nhất
+                fetchSequence = searchResults.slice(-10);
+            } else {
+                const totalMessages = client.mailbox.exists; 
+                if (totalMessages === 0) {
+                    lock.release();
+                    await client.logout();
+                    return res.json({ success: true, data: [] });
+                }
+                // Nếu không tìm kiếm, mặc định lấy 5 thư mới nhất
+                const startMsg = Math.max(1, totalMessages - 4); 
+                fetchSequence = `${startMsg}:*`;
+            }
+
+            for await (let msg of client.fetch(fetchSequence, { source: true })) {
+                const parsed = await simpleParser(msg.source);
+                emails.push({
+                    subject: parsed.subject || "(Không có chủ đề)",
+                    from: parsed.from ? parsed.from.text : "Unknown Sender",
+                    date: parsed.date,
+                    body: parsed.html || parsed.textAsHtml || parsed.text || "Không có nội dung" 
+                });
+            }
+
+            lock.release();
+            await client.logout();
+
+            return res.json({ success: true, data: emails.reverse() });
+        }
+
+    } catch (error) {
+        console.error("Lỗi hệ thống Mail:", error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
-  } catch (err) {
-    console.error(`GET /api/mails/${req.params.id}:`, err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    try {
-      if (client && client.usable) await client.logout();
-    } catch (_) {}
-  }
 });
 
-// Railway cung cấp PORT; không hard-code localhost/3000.
-app.listen(port, host, () => {
-  console.log(`Server listening on ${host}:${port}`);
+// Chạy ứng dụng trên cổng động và cho phép mọi nguồn kết nối (0.0.0.0)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Ứng dụng Webmail đang chạy thành công tại cổng: ${PORT}`);
 });

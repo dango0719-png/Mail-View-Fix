@@ -1,18 +1,18 @@
 {
-  "name": "mail-server",
+  "name": "mailviewer",
   "version": "1.0.0",
+  "description": "Ung dung Webmail ho tro IMAP va POP3",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "imap-simple": "^5.1.0",
-    "imapflow": "^1.4.6",
-    "mailparser": "^3.9.14"
+"dependencies": {
+    "express": "^4.19.2",
+    "imapflow": "^1.0.15",
+    "mailparser": "^3.7.1",
+    "node-pop3": "*"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.0.0"
   }
 }
