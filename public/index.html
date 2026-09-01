@@ -1,209 +1,152 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mail Viewer</title>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
-    .top{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 24px}
-    .brand{font-size:20px;font-weight:700}
-    .status{font-size:13px;color:#64748b}
-    .wrap{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;padding:24px}
-    .login{width:390px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px;box-shadow:0 10px 30px #0000000b}
-    h1{margin:0 0 8px;font-size:24px}
-    .muted{color:#64748b;font-size:14px;margin-bottom:22px}
-    label{display:block;font-size:13px;font-weight:600;margin:14px 0 7px}
-    input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
-    button{border:0;border-radius:8px;padding:11px 16px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600}
-    button:disabled{opacity:.6;cursor:wait}
-    .login button{width:100%;margin-top:20px}
-    .error{display:none;background:#fee2e2;color:#991b1b;padding:11px;border-radius:8px;font-size:13px;margin-top:15px}
-    .app{display:none;height:calc(100vh - 64px)}
-    .sidebar{width:360px;background:#fff;border-right:1px solid #e5e7eb;overflow:auto}
-    .toolbar{padding:14px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px}
-    .toolbar button{width:auto}
-    .secondary{background:#e2e8f0;color:#172033}
-    .mail{padding:13px 16px;border-bottom:1px solid #eef2f7;cursor:pointer}
-    .mail:hover{background:#f8fafc}
-    .mail .subject{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mail .from,.mail .date{font-size:12px;color:#64748b;margin-top:5px}
-    .content{flex:1;background:#fff;overflow:auto;padding:30px}
-    .content h2{margin-top:0}
-    .content iframe{width:100%;min-height:70vh;border:0}
-    .empty{color:#64748b;text-align:center;margin-top:35px}
-    @media(max-width:700px){.sidebar{width:100%}.content{display:none}.app{display:block}.app.mobile-detail .sidebar{display:none}.app.mobile-detail .content{display:block}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mail Viewer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f6f9;color:#172033}
+header{height:62px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.brand{font-size:20px;font-weight:700}.status{font-size:13px;color:#64748b}
+.center{min-height:calc(100vh - 62px);display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:430px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:26px;box-shadow:0 12px 35px #0000000c}
+h1{margin:0 0 7px;font-size:24px}.hint{color:#64748b;font-size:13px;margin-bottom:20px}
+label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}
+input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btn{width:100%;margin-top:20px;padding:12px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.6}.error{display:none;margin-top:13px;padding:10px;border-radius:8px;background:#fee2e2;color:#991b1b;font-size:13px}
+.app{display:none;height:calc(100vh - 62px)}.side{width:370px;background:#fff;border-right:1px solid #e5e7eb;overflow:auto}.bar{padding:12px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px}.bar button{padding:9px 12px;border:0;border-radius:7px;cursor:pointer;background:#2563eb;color:#fff}.bar .secondary{background:#e2e8f0;color:#172033}
+.mail{padding:13px 16px;border-bottom:1px solid #eef2f7;cursor:pointer}.mail:hover{background:#f8fafc}.subject{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:12px;color:#64748b;margin-top:5px}
+.main{flex:1;background:#fff;padding:28px;overflow:auto}.empty{color:#64748b;text-align:center;margin-top:30px}.main iframe{width:100%;height:70vh;border:0}
+@media(max-width:700px){.side{width:100%}.main{display:none}.app.detail .side{display:none}.app.detail .main{display:block}}
+</style>
 </head>
 <body>
-<header class="top">
-  <div class="brand">📬 Mail Viewer</div>
-  <div id="topStatus" class="status">Chưa đăng nhập</div>
-</header>
+<header><div class="brand">📬 Mail Viewer</div><div id="status" class="status">Chưa đăng nhập</div></header>
 
-<div id="loginWrap" class="wrap">
-  <form id="loginForm" class="login">
-    <h1>Đăng nhập email</h1>
-    <div class="muted">Nhập tài khoản email của khách hàng để xem hộp thư.</div>
+<div id="login" class="center">
+<form id="form" class="card">
+<h1>Đăng nhập hộp thư</h1>
+<div class="hint">Khách nhập đầy đủ thông tin mail:pass:server:port và chọn IMAP hoặc POP3.</div>
 
-    <label>Email</label>
-    <input id="user" type="email" autocomplete="username" required placeholder="you@example.com">
+<label>Email</label>
+<input id="user" type="email" required autocomplete="username" placeholder="customer@example.com">
 
-    <label>Mật khẩu</label>
-    <input id="pass" type="password" autocomplete="current-password" required placeholder="••••••••">
+<label>Mật khẩu</label>
+<input id="pass" type="password" required autocomplete="current-password" placeholder="Mật khẩu email">
 
-    <div style="font-size:12px;color:#64748b;margin-top:12px">
-      Máy chủ thư: <b id="imapHost">m4.kcn.ne.jp</b>
-    </div>
+<label>Máy chủ mail</label>
+<input id="host" required placeholder="imap.example.com hoặc pop.example.com">
 
-    <button id="loginBtn" type="submit">Đăng nhập</button>
-    <div id="loginError" class="error"></div>
-  </form>
+<div class="grid">
+<div>
+<label>Giao thức</label>
+<select id="protocol">
+<option value="imap">IMAP</option>
+<option value="pop3">POP3</option>
+</select>
+</div>
+<div>
+<label>Port</label>
+<input id="port" type="number" min="1" max="65535" required>
+</div>
+</div>
+
+<label>SSL/TLS</label>
+<select id="secure">
+<option value="true">Có — SSL/TLS trực tiếp</option>
+<option value="false">Không — kết nối thường / STARTTLS nếu máy chủ hỗ trợ</option>
+</select>
+
+<button id="loginBtn" class="btn">Đăng nhập</button>
+<div id="error" class="error"></div>
+</form>
 </div>
 
 <div id="app" class="app">
-  <aside class="sidebar">
-    <div class="toolbar">
-      <button id="refreshBtn">↻ Làm mới</button>
-      <button id="logoutBtn" class="secondary">Đăng xuất</button>
-    </div>
-    <div id="mailList"></div>
-  </aside>
-  <main class="content">
-    <div id="mailContent" class="empty">Chọn một email để xem nội dung</div>
-  </main>
+<aside class="side">
+<div class="bar"><button id="refresh">↻ Làm mới</button><button id="logout" class="secondary">Đăng xuất</button></div>
+<div id="list"></div>
+</aside>
+<main class="main"><div id="content" class="empty">Chọn một email để xem nội dung</div></main>
 </div>
 
 <script>
-let token = sessionStorage.getItem('mail_token');
+let token=sessionStorage.getItem('mail_token');
+const $=id=>document.getElementById(id);
 
-const $ = id => document.getElementById(id);
-const api = async (url, options = {}) => {
-  const headers = {'Content-Type':'application/json', ...(options.headers || {})};
-  if (token) headers.Authorization = 'Bearer ' + token;
-  const r = await fetch(url, {...options, headers});
-  const text = await r.text();
+function setDefaults(){
+  const p=$('protocol').value;
+  $('port').value=p==='imap'?993:995;
+}
+$('protocol').addEventListener('change',setDefaults);
+setDefaults();
+
+async function api(url,opt={}){
+  const headers={'Content-Type':'application/json',...(opt.headers||{})};
+  if(token)headers.Authorization='Bearer '+token;
+  const r=await fetch(url,{...opt,headers});
+  const text=await r.text();
   let data;
-  try { data = JSON.parse(text); }
-  catch { throw new Error('Máy chủ trả về dữ liệu không hợp lệ (' + r.status + ').'); }
-  if (!r.ok) {
-    if (r.status === 401) logout(false);
-    throw new Error(data.error || 'Có lỗi xảy ra.');
+  try{data=JSON.parse(text)}catch(e){throw new Error('Server trả về dữ liệu không hợp lệ ('+r.status+').')}
+  if(!r.ok){
+    if(r.status===401)logout(false);
+    throw new Error(data.error||'Có lỗi xảy ra.');
   }
   return data;
-};
-
-function showLogin() {
-  $('loginWrap').style.display = 'flex';
-  $('app').style.display = 'none';
-  $('topStatus').textContent = 'Chưa đăng nhập';
 }
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function showLogin(){ $('login').style.display='flex';$('app').style.display='none';$('status').textContent='Chưa đăng nhập';}
+function showApp(me){$('login').style.display='none';$('app').style.display='flex';$('status').textContent='● '+me.user+' · '+me.protocol.toUpperCase()+' · '+me.host+':'+me.port}
 
-function showApp(user) {
-  $('loginWrap').style.display = 'none';
-  $('app').style.display = 'flex';
-  $('topStatus').textContent = '● ' + user;
+async function login(){
+  const btn=$('loginBtn'); const err=$('error');
+  err.style.display='none';btn.disabled=true;btn.textContent='Đang đăng nhập...';
+  try{
+    const d=await api('/api/login',{method:'POST',body:JSON.stringify({
+      user:$('user').value.trim(),pass:$('pass').value,
+      host:$('host').value.trim(),protocol:$('protocol').value,
+      port:Number($('port').value),secure:$('secure').value==='true'
+    })});
+    token=d.token;sessionStorage.setItem('mail_token',token);$('pass').value='';
+    showApp(d);await loadMails();
+  }catch(e){err.textContent=e.message;err.style.display='block'}
+  finally{btn.disabled=false;btn.textContent='Đăng nhập'}
 }
+$('form').addEventListener('submit',e=>{e.preventDefault();login()});
 
-function logout(clearServer = true) {
-  if (clearServer && token) fetch('/api/logout', {
-    method:'POST',
-    headers:{Authorization:'Bearer '+token}
-  }).catch(()=>{});
-  token = null;
-  sessionStorage.removeItem('mail_token');
-  $('mailList').innerHTML = '';
-  $('mailContent').innerHTML = '<div class="empty">Chọn một email để xem nội dung</div>';
-  showLogin();
+async function loadMails(){
+  $('list').innerHTML='<div class="empty">Đang tải email...</div>';
+  try{
+    const mails=await api('/api/mails');
+    if(!mails.length){$('list').innerHTML='<div class="empty">Hộp thư trống</div>';return}
+    $('list').innerHTML=mails.map(m=>`<div class="mail" data-id="${esc(m.id)}">
+      <div class="subject">${esc(m.subject)}</div>
+      <div class="meta">${esc(m.from)}</div>
+      <div class="meta">${m.date?new Date(m.date).toLocaleString('vi-VN'):''}</div>
+    </div>`).join('');
+    document.querySelectorAll('.mail').forEach(x=>x.onclick=()=>openMail(x.dataset.id));
+  }catch(e){$('list').innerHTML='<div class="error" style="display:block;margin:12px">'+esc(e.message)+'</div>'}
 }
-
-$('loginForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const btn = $('loginBtn');
-  const err = $('loginError');
-  err.style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Đang kiểm tra...';
-
-  try {
-    const data = await api('/api/login', {
-      method:'POST',
-      body:JSON.stringify({user:$('user').value, pass:$('pass').value})
-    });
-    token = data.token;
-    sessionStorage.setItem('mail_token', token);
-    $('pass').value = '';
-    showApp(data.user);
-    await loadMails();
-  } catch (e) {
-    err.textContent = e.message;
-    err.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Đăng nhập';
-  }
-});
-
-async function loadMails() {
-  $('mailList').innerHTML = '<div class="empty">Đang tải email...</div>';
-  try {
-    const mails = await api('/api/mails');
-    if (!mails.length) {
-      $('mailList').innerHTML = '<div class="empty">Hộp thư trống</div>';
-      return;
-    }
-    $('mailList').innerHTML = mails.map(m => `
-      <div class="mail" data-id="${m.id}">
-        <div class="subject">${escapeHtml(m.subject)}</div>
-        <div class="from">${escapeHtml(m.from)}</div>
-        <div class="date">${m.date ? new Date(m.date).toLocaleString('vi-VN') : ''}</div>
-      </div>
-    `).join('');
-    document.querySelectorAll('.mail').forEach(el => {
-      el.addEventListener('click', () => openMail(el.dataset.id));
-    });
-  } catch (e) {
-    $('mailList').innerHTML = '<div class="error" style="display:block;margin:12px">' + escapeHtml(e.message) + '</div>';
-  }
+async function openMail(id){
+  $('content').innerHTML='<div class="empty">Đang tải...</div>';
+  try{
+    const m=await api('/api/mails/'+encodeURIComponent(id));
+    $('content').innerHTML=`<button onclick="$('app').classList.remove('detail')" style="padding:8px 12px;border:0;border-radius:7px;margin-bottom:15px">← Danh sách</button>
+      <h2>${esc(m.subject)}</h2><div class="meta">${esc(m.from)}</div>
+      <iframe id="frame" sandbox="allow-same-origin"></iframe>`;
+    $('frame').srcdoc=m.body;$('app').classList.add('detail');
+  }catch(e){$('content').innerHTML='<div class="error" style="display:block">'+esc(e.message)+'</div>'}
 }
-
-async function openMail(id) {
-  $('mailContent').innerHTML = '<div class="empty">Đang tải...</div>';
-  try {
-    const m = await api('/api/mails/' + encodeURIComponent(id));
-    $('mailContent').innerHTML = `
-      <button class="secondary" onclick="document.getElementById('app').classList.remove('mobile-detail')" style="margin-bottom:15px">← Danh sách</button>
-      <h2>${escapeHtml(m.subject)}</h2>
-      <div style="font-size:13px;color:#64748b;margin-bottom:20px">${escapeHtml(m.from || '')}</div>
-      <iframe sandbox="allow-same-origin" id="mailFrame"></iframe>
-    `;
-    const frame = $('mailFrame');
-    frame.srcdoc = m.body;
-    $('app').classList.add('mobile-detail');
-  } catch (e) {
-    $('mailContent').innerHTML = '<div class="error" style="display:block">' + escapeHtml(e.message) + '</div>';
-  }
+async function logout(callServer=true){
+  if(callServer&&token)fetch('/api/logout',{method:'POST',headers:{Authorization:'Bearer '+token}}).catch(()=>{});
+  token=null;sessionStorage.removeItem('mail_token');$('list').innerHTML='';$('content').innerHTML='';showLogin();
 }
+$('refresh').onclick=loadMails;$('logout').onclick=()=>logout(true);
 
-function escapeHtml(v) {
-  return String(v ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
-  }[c]));
-}
-
-$('refreshBtn').onclick = loadMails;
-$('logoutBtn').onclick = () => logout(true);
-
-(async function init() {
-  if (!token) return showLogin();
-  try {
-    const me = await api('/api/me');
-    showApp(me.user);
-    await loadMails();
-  } catch (_) {
-    showLogin();
-  }
+(async()=>{
+  if(!token)return showLogin();
+  try{const me=await api('/api/me');showApp(me);await loadMails()}catch(e){showLogin()}
 })();
 </script>
 </body>

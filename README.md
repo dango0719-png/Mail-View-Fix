@@ -1,18 +1,18 @@
-# Mail Viewer - Railway Customer Login
+# Mail Viewer - Customer mail:pass:server:port login
 
-The customer logs in from the browser with their email address and password.
-No IMAP username/password is required in Railway Variables.
+Customer enters:
+- Email
+- Password
+- Mail server (e.g. imap.example.com / pop.example.com)
+- Protocol: IMAP or POP3
+- Port (e.g. IMAP 993, POP3 995)
+- SSL/TLS on/off
 
-Required Railway variables:
-- IMAP_HOST=m4.kcn.ne.jp
-- IMAP_PORT=143
-- IMAP_SECURE=false
+The server verifies the credentials against the selected mail server, then
+keeps them only in RAM for a short session. They are not written to a file
+or database. Railway only needs the normal Node app; no fixed IMAP_USER/PASS.
 
-The customer credentials are kept only in server memory for a short-lived session
-and are not written to disk/database. Restarting the Railway service logs users out.
-
-Deploy:
-1. Put these files in the root of the GitHub repo connected to Railway.
-2. Set the three IMAP variables above.
-3. Redeploy.
-4. Open the Railway public URL.
+Important:
+- For IMAP SSL use port 993.
+- For POP3 SSL use port 995.
+- Port 143/110 can be used for non-direct SSL where the server supports STARTTLS.
