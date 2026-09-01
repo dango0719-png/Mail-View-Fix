@@ -1,124 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quick Mail Viewer</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f3f4f6; padding: 20px; margin: 0; color: #1f2937; }
-        .container { max-width: 900px; margin: 30px auto; }
-        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        h2 { margin-top: 0; color: #111827; font-size: 24px; margin-bottom: 20px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; color: #4b5563; font-size: 14px; }
-        input { width: 100%; padding: 11px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
-        input:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
-        button { background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: 600; transition: background 0.2s; }
-        button:hover { background: #4338ca; }
-        .email-item { background: white; border: 1px solid #e5e7eb; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .email-subject { font-size: 19px; font-weight: 700; margin: 0 0 8px 0; color: #111827; }
-        .email-meta { font-size: 14px; color: #4b5563; margin-bottom: 15px; border-bottom: 1px solid #f3f4f6; padding-bottom: 10px; line-height: 1.6; }
-        .iframe-container { width: 100%; margin-top: 10px; }
-        iframe { width: 100%; height: 500px; border: 1px solid #e5e7eb; border-radius: 6px; background: #ffffff; }
-        #loading { display: none; text-align: center; color: #4f46e5; font-weight: 700; margin: 20px 0; font-size: 16px; }
-        .error-box { background: #fef2f2; border: 1px solid #fee2e2; color: #991b1b; padding: 15px; border-radius: 6px; margin-top: 15px; font-weight: 500; }
-        .search-box { background: #e0e7ff; padding: 15px; border-radius: 6px; border: 1px solid #c7d2fe; margin-bottom: 15px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mail Viewer</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
+    .app{height:100vh;display:flex;flex-direction:column}.top{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 22px;gap:14px}.logo{font-size:20px;font-weight:700}.status{margin-left:auto;font-size:13px;color:#64748b}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px}.main{flex:1;display:grid;grid-template-columns:360px 1fr;min-height:0}.list{background:#fff;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;min-width:0}.toolbar{padding:14px;border-bottom:1px solid #e5e7eb;display:flex;gap:8px}.toolbar button{border:0;background:#eef2ff;padding:9px 13px;border-radius:8px;cursor:pointer}.mail-list{overflow:auto}.mail{padding:15px;border-bottom:1px solid #eef0f4;cursor:pointer}.mail:hover,.mail.active{background:#f1f5ff}.from{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.subject{font-size:14px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:12px;color:#94a3b8;margin-top:7px}.empty,.loading{padding:30px;text-align:center;color:#64748b}.detail{min-width:0;background:#fff;overflow:auto}.detail-head{padding:24px;border-bottom:1px solid #e5e7eb}.detail-head h1{margin:0 0 10px;font-size:22px}.detail-body{padding:24px}.detail-body iframe{width:100%;min-height:70vh;border:0}.textbody{white-space:pre-wrap;line-height:1.6}.error{margin:14px;padding:12px;border-radius:8px;background:#fef2f2;color:#b91c1c;font-size:13px}.badge{font-size:12px;color:#64748b}@media(max-width:760px){.main{grid-template-columns:1fr}.list{height:45vh;border-right:0;border-bottom:1px solid #e5e7eb}.detail{height:55vh}}
+  </style>
 </head>
 <body>
-
-    <div class="container">
-        <div class="card">
-            <h2>Quick Login Webmail</h2>
-            <form id="mailForm">
-                <label for="host">IMAP (Host)</label>
-                <input type="text" id="host" required value="imap.gmail.com">
-
-                <label for="port">Port</label>
-                <input type="number" id="port" required value="993">
-
-                <label for="email">Email</label>
-                <input type="email" id="email" required>
-
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
-
-                <div class="search-box">
-                    <label for="searchKeyword">🔍 Search Mail (Option)</label>
-                    <input type="text" id="searchKeyword" placeholder="Enter keywords, sender's name, or email subject..." style="margin-bottom: 0;">
-                </div>
-
-                <button type="submit">Login Mail</button>
-            </form>
-        </div>
-
-        <div id="loading">⏳ Processing... Please wait! (The search process may take a few seconds))</div>
-        
-        <div id="result"></div>
-    </div>
-
-    <script>
-        document.getElementById('mailForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            
-            const resultDiv = document.getElementById('result');
-            const loadingDiv = document.getElementById('loading');
-            
-            resultDiv.innerHTML = '';
-            loadingDiv.style.display = 'block';
-
-            // Lấy thêm trường searchKeyword
-            const payload = {
-                host: document.getElementById('host').value,
-                port: document.getElementById('port').value,
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
-                searchKeyword: document.getElementById('searchKeyword').value
-            };
-
-            try {
-                const response = await fetch('/api/read-mail', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const resData = await response.json();
-                loadingDiv.style.display = 'none';
-
-                if (resData.success) {
-                    if (resData.data.length === 0) {
-                        const emptyMsg = payload.searchKeyword 
-                            ? `No emails found containing the keyword. "<strong>${payload.searchKeyword}</strong>"`
-                            : 'The mailbox is currently empty.!';
-                        resultDiv.innerHTML = `<div class="card" style="text-align:center; color:#6b7280;">${emptyMsg}</div>`;
-                        return;
-                    }
-                    
-                    resData.data.forEach(mail => {
-                        const date = new Date(mail.date).toLocaleString('vi-VN');
-                        const safeHtml = mail.body.replace(/"/g, '&quot;');
-
-                        resultDiv.innerHTML += `
-                            <div class="email-item">
-                                <h3 class="email-subject">${mail.subject}</h3>
-                                <div class="email-meta">
-                                    <strong>Người gửi:</strong> ${mail.from.replace(/</g, "&lt;").replace(/>/g, "&gt;")} <br>
-                                    <strong>Thời gian nhận:</strong> ${date}
-                                </div>
-                                <div class="iframe-container">
-                                    <iframe srcdoc="${safeHtml}"></iframe>
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    resultDiv.innerHTML = `<div class="error-box"><strong>Error:</strong> ${resData.message}</div>`;
-                }
-            } catch (error) {
-                loadingDiv.style.display = 'none';
-                resultDiv.innerHTML = `<div class="error-box"><strong>Connection error:</strong> Unable to connect to the backend server..</div>`;
-            }
-        });
-    </script>
+<div class="app">
+  <header class="top"><div class="logo">📬 Mail Viewer</div><div class="status"><span class="dot"></span><span id="status">Đang kết nối...</span></div></header>
+  <main class="main">
+    <section class="list">
+      <div class="toolbar"><button onclick="loadMails()">↻ Làm mới</button><span class="badge" id="count"></span></div>
+      <div id="error"></div><div id="mailList" class="mail-list"><div class="loading">Đang tải email...</div></div>
+    </section>
+    <section class="detail" id="detail"><div class="empty">Chọn một email để xem nội dung</div></section>
+  </main>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function fmt(d){if(!d)return '';try{return new Date(d).toLocaleString('vi-VN')}catch{return d}}
+async function loadMails(){
+  $('status').textContent='Đang tải...';$('error').innerHTML='';$('mailList').innerHTML='<div class="loading">Đang tải email...</div>';
+  try{const r=await fetch('/api/mails',{headers:{'Accept':'application/json'}});const text=await r.text();let data;try{data=JSON.parse(text)}catch{throw new Error('Server không trả JSON (HTTP '+r.status+'). Response: '+text.slice(0,300))}if(!r.ok)throw new Error(data.error||'Không thể tải email');
+    $('count').textContent=data.length+' email';$('status').textContent='Đã kết nối';
+    $('mailList').innerHTML=data.length?data.map(m=>`<div class="mail" data-id="${esc(m.id)}" onclick="openMail(${Number(m.id)},this)"><div class="from">${esc(m.from||'Không rõ người gửi')}</div><div class="subject">${esc(m.subject)}</div><div class="date">${esc(fmt(m.date))}</div></div>`).join(''):'<div class="empty">Không có email</div>';
+  }catch(e){$('status').textContent='Lỗi kết nối';$('mailList').innerHTML='';$('error').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+async function openMail(id,el){document.querySelectorAll('.mail').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('detail').innerHTML='<div class="loading">Đang mở email...</div>';
+  try{const r=await fetch('/api/mails/'+encodeURIComponent(id),{headers:{'Accept':'application/json'}});const text=await r.text();let data;try{data=JSON.parse(text)}catch{throw new Error('Server không trả JSON (HTTP '+r.status+'). Response: '+text.slice(0,300))}if(!r.ok)throw new Error(data.error||'Không thể mở email');
+    $('detail').innerHTML='<div class="detail-head"><h1>'+esc(data.subject)+'</h1></div><div class="detail-body"><div id="body"></div></div>';
+    const body=$('body');body.innerHTML=data.body||'<span class="empty">Email không có nội dung</span>';
+    body.querySelectorAll('script').forEach(s=>s.remove());
+  }catch(e){$('detail').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+loadMails();
+</script>
 </body>
 </html>
